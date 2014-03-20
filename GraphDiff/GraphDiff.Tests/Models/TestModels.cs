@@ -130,6 +130,7 @@ namespace RefactorThis.GraphDiff.Tests.Models
     public class OneToManyOwnedModel : Entity
     {
         public TestNode OneParent { get; set; }
+        public int ParentId { get; set; }
         public ICollection<OneToManyOneToManyOwnedModel> OneToManyOneToManyOwned { get; set; }
         public OneToManyOneToOneOwnedModel OneToManyOneToOneOwned { get; set; }
         public ICollection<OneToManyOneToManyAssociatedModel> OneToManyOneToManyAssociated { get; set; }

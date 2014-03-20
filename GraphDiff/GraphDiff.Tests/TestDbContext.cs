@@ -36,7 +36,7 @@ namespace RefactorThis.GraphDiff.Tests
             modelBuilder.Entity<TestNode>().HasOptional(p => p.OneToOneAssociated).WithOptionalPrincipal(p => p.OneParent);
             modelBuilder.Entity<TestNode>().HasMany(p => p.OneToManyAssociated).WithOptional(p => p.OneParent);
             modelBuilder.Entity<TestNode>().HasOptional(p => p.OneToOneOwned).WithRequired(p => p.OneParent).WillCascadeOnDelete();
-            modelBuilder.Entity<TestNode>().HasMany(p => p.OneToManyOwned).WithRequired(p => p.OneParent).WillCascadeOnDelete();
+            modelBuilder.Entity<TestNode>().HasMany(p => p.OneToManyOwned).WithRequired(p => p.OneParent).HasForeignKey(p => p.ParentId).WillCascadeOnDelete();
 
             modelBuilder.Entity<GroupedTestNode>().HasOptional(g => g.One).WithOptionalDependent(g => g.Two).WillCascadeOnDelete(false);
 

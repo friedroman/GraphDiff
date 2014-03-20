@@ -189,9 +189,11 @@ namespace RefactorThis.GraphDiff.Tests.Tests
             using (var context = new TestDbContext())
             {
                 root = context.UpdateGraph(root, map => map.OwnedCollection(r => r.Sources, with => with.AssociatedEntity(s => s.RequiredAssociate)));
+                Assert.AreEqual(root.Sources.Count, 2);
                 context.SaveChanges();
 
                 Assert.IsTrue(root.Sources.All(s => s.RequiredAssociate.Id == expectedAssociateId));
+                Assert.AreEqual(root.Sources.Count, 2);
 
                 var sourceIds = root.Sources.Select(s => s.Id).ToArray();
                 var sourcesReloaded = context.RootEntities.Where(r => sourceIds.Contains(r.Id)).ToList();
@@ -306,15 +308,17 @@ namespace RefactorThis.GraphDiff.Tests.Tests
         {
             var node1 = new TestNode
             {
-                Title = "New Node",
-                OneToManyOwned = new List<OneToManyOwnedModel>
-                {
-                    new OneToManyOwnedModel { Title = "This" },
-                    new OneToManyOwnedModel { Title = "Is" },
-                    new OneToManyOwnedModel { Title = "A" },
-                    new OneToManyOwnedModel { Title = "Test" }
-                }
+                Title = "New Node"
             };
+            var oneToManyOwned1 = new OneToManyOwnedModel { Title = "This" };
+            var oneToManyOwned2 = new OneToManyOwnedModel { Title = "Is" };
+            var oneToManyOwned3 = new OneToManyOwnedModel { Title = "A" };
+            var oneToManyOwned4 = new OneToManyOwnedModel { Title = "Test" };
+            node1.OneToManyOwned = new List<OneToManyOwnedModel>();
+            node1.OneToManyOwned.Add(oneToManyOwned1);
+            node1.OneToManyOwned.Add(oneToManyOwned2);
+            node1.OneToManyOwned.Add(oneToManyOwned3);
+            node1.OneToManyOwned.Add(oneToManyOwned4);
 
             using (var context = new TestDbContext())
             {
@@ -322,15 +326,53 @@ namespace RefactorThis.GraphDiff.Tests.Tests
                 context.SaveChanges();
             } // Simulate detach
 
-            node1.OneToManyOwned.Remove(node1.OneToManyOwned.First());
-            node1.OneToManyOwned.First().Title = "Hello";
-            node1.OneToManyOwned.Add(new OneToManyOwnedModel { Title = "Finish" });
+            var node1Updated = new TestNode
+            {
+                Id = node1.Id,
+                Title = "New Node",
+                RowVersion = node1.RowVersion,
+                OneToManyOwned = new List<OneToManyOwnedModel>
+                {
+                    new OneToManyOwnedModel
+                    {
+                        Title = "Hello",
+                        Id = oneToManyOwned1.Id,
+                        ParentId = node1.Id,
+                        RowVersion = oneToManyOwned1.RowVersion
+                    },
+                    new OneToManyOwnedModel
+                    {
+                        ParentId = node1.Id,
+                        Title = "New Add1"
+                    },
+                    new OneToManyOwnedModel 
+                    {
+                        Title = "A",
+                        ParentId = node1.Id,
+                        Id = oneToManyOwned3.Id,
+                        RowVersion = oneToManyOwned3.RowVersion
+                    },
+                    new OneToManyOwnedModel
+                    {
+                        Title = "Test",
+                        ParentId = node1.Id,
+                        Id = oneToManyOwned4.Id,
+                        RowVersion = oneToManyOwned4.RowVersion
+                    },
+                    new OneToManyOwnedModel
+                    {
+                        ParentId = node1.Id,
+                        Title = "New Add2"
+                    }
+                }
+            };
             using (var context = new TestDbContext())
             {
+                node1 = context.Nodes.Include(node => node.OneToManyOwned).Single(node => node.Id == node1.Id);
                 // Setup mapping
-                context.UpdateGraph(node1, map => map
+                node1Updated = context.UpdateGraph(node1Updated, map => map
                     .OwnedCollection(p => p.OneToManyOwned));
-
+                Assert.AreEqual(node1Updated.OneToManyOwned.Count, 5);
                 context.SaveChanges();
                 var node2 = context.Nodes.Include(p => p.OneToManyOwned).Single(p => p.Id == node1.Id);
                 Assert.IsNotNull(node2);
@@ -338,7 +380,8 @@ namespace RefactorThis.GraphDiff.Tests.Tests
                 Assert.IsTrue(list[0].Title == "Hello");
                 Assert.IsTrue(list[1].Title == "A");
                 Assert.IsTrue(list[2].Title == "Test");
-                Assert.IsTrue(list[3].Title == "Finish");
+                Assert.IsTrue(list[3].Title == "New Add1");
+                Assert.IsTrue(list[4].Title == "New Add2");
             }
         }
     }

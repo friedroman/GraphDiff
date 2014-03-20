@@ -66,8 +66,19 @@ namespace RefactorThis.GraphDiff.Internal.Graph
 
                 updateItem = instance;
             }
+            var listDbCollection = dbCollection as IList;
+            if (listDbCollection != null)
+            {
+                if (!listDbCollection.Contains(updateItem))
+                {
+                    listDbCollection.Add(updateItem);
+                }
+            }
+            else
+            {
+                dbCollection.GetType().GetMethod("Add").Invoke(dbCollection, new[] {updateItem});
+            }
 
-            dbCollection.GetType().GetMethod("Add").Invoke(dbCollection, new[] {updateItem});
 
             AttachCyclicNavigationProperty(context, existing, updateItem);
 
